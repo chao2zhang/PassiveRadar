@@ -8,8 +8,7 @@ HINT_USER = 'User:'
 HINT_PASSWORD = 'Password:'
 HINT_MORE = 'q)uit'
 HINT_PROMPT = 'er) >'
-RE_HINT_MORE = re.compile(r'q\)uit$')
-RE_HINT_PROMPT = re.compile(r'er\) >$')
+HINT_NEXT = (HINT_MORE, HINT_PROMPT)
 MESSAGE_LOGOUT = 'logout'
 MESSAGE_CLIENT_SUMMARY = 'show rogue client summary'
 MESSAGE_CLIENT_DETAILED = 'show rogue client detailed %s'
@@ -21,28 +20,21 @@ class Controller:
 
     def __init__(self, host):
         self.host = host
-        self.tn = telnet.Telnet(host)
+        self.tn = telnet.RawqTelnet(host)
 
-    def _read_until(self, msg='', timeout=0.5):
-        return self.tn.read_until(msg, timeout)
+    def _read_until(self, msg=''):
+        return str(self.tn.read_until(msg))
 
-    def _read_full(self, timeout=0.5):
-        s = ''
-        last_r = ''
+    def _read_full(self):
+        s = bytearray()
         while True:
-            r = self.tn.expect([RE_HINT_MORE, RE_HINT_PROMPT], timeout)
-            if last_r:
-                r = last_r + r
-            s += r[2]
+            r = self.tn.read_until(HINT_MORE, HINT_PROMPT)
+            s += r[1]
             if r[0] == 0:
                 self._writeline()
-            if r[0] == -1:
-                last_r = r
             else:
-                last_r = ''
-            if not r[2]:
                 break
-        return s
+        return str(s)
 
     def _writeline(self, msg=''):
         self.tn.write(msg + '\n')
