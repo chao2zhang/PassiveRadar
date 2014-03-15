@@ -1,4 +1,4 @@
-import telnetlib
+import telnet
 import ConfigParser
 import re
 
@@ -6,8 +6,10 @@ __all__ = ['Controller']
 
 HINT_USER = 'User:'
 HINT_PASSWORD = 'Password:'
-HINT_MORE = '--More-- or (q)uit'
-HINT_PROMPT = '(Cisco Controller) >'
+HINT_MORE = 'q)uit'
+HINT_PROMPT = 'er) >'
+RE_HINT_MORE = re.compile(r'q\)uit$')
+RE_HINT_PROMPT = re.compile(r'er\) >$')
 MESSAGE_LOGOUT = 'logout'
 MESSAGE_CLIENT_SUMMARY = 'show rogue client summary'
 MESSAGE_CLIENT_DETAILED = 'show rogue client detailed %s'
@@ -19,10 +21,28 @@ class Controller:
 
     def __init__(self, host):
         self.host = host
-        self.tn = telnetlib.Telnet(host)
+        self.tn = telnet.Telnet(host)
 
-    def _read_until(self, msg='', timeout=1):
+    def _read_until(self, msg='', timeout=0.5):
         return self.tn.read_until(msg, timeout)
+
+    def _read_full(self, timeout=0.5):
+        s = ''
+        last_r = ''
+        while True:
+            r = self.tn.expect([RE_HINT_MORE, RE_HINT_PROMPT], timeout)
+            if last_r:
+                r = last_r + r
+            s += r[2]
+            if r[0] == 0:
+                self._writeline()
+            if r[0] == -1:
+                last_r = r
+            else:
+                last_r = ''
+            if not r[2]:
+                break
+        return s
 
     def _writeline(self, msg=''):
         self.tn.write(msg + '\n')
@@ -42,30 +62,23 @@ class Controller:
 
     def clients(self):
         self._writeline(MESSAGE_CLIENT_SUMMARY)
-        a = ''
-        flag = True
-        while flag:
-            s = self._read_until(HINT_MORE)
-            a += s
-            if not s or s.endswith(HINT_PROMPT):
-                flag = False
-            else:
-                self._writeline()
-        flag = True
+        s = self._read_full()
         idx = 0
         lst = []
-        while flag:
-            r = RE_MAC.search(a, idx)
+        while True:
+            r = RE_MAC.search(s, idx)
             if r:
-                lst.append(a[r.start():r.end()])
+                lst.append(s[r.start():r.end()])
                 idx = r.end()
             else:
-                flag = False
+                break
         return lst
 
     def rssi(self, mac):
         if mac:
             self._writeline(MESSAGE_CLIENT_DETAILED % mac)
-            s = self._read_until(HINT_PROMPT)
-            return int(RE_RSSI.search(s).group('rssi'))
+            s = self._read_full()
+            r = RE_RSSI.search(s)
+            if r:
+                return r.group('rssi')
         return None
