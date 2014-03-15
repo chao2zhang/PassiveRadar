@@ -10,9 +10,10 @@ HINT_MORE = '--More-- or (q)uit'
 HINT_PROMPT = '(Cisco Controller) >'
 MESSAGE_LOGOUT = 'logout'
 MESSAGE_CLIENT_SUMMARY = 'show rogue client summary'
-MESSAGE_CLIENT_DETAILED = 'show rogue client detailed'
+MESSAGE_CLIENT_DETAILED = 'show rogue client detailed %s'
 
 RE_MAC = re.compile(r'(\w\w:){5}\w\w')
+RE_RSSI = re.compile(r'(?P<rssi>-?\d+) dBm')
 
 class Controller:
 
@@ -39,7 +40,7 @@ class Controller:
         self._writeline(MESSAGE_LOGOUT)
         self.tn.close()
 
-    def summary(self):
+    def clients(self):
         self._writeline(MESSAGE_CLIENT_SUMMARY)
         a = ''
         flag = True
@@ -61,3 +62,10 @@ class Controller:
             else:
                 flag = False
         return lst
+
+    def rssi(self, mac):
+        if mac:
+            self._writeline(MESSAGE_CLIENT_DETAILED % mac)
+            s = self._read_until(HINT_PROMPT)
+            return int(RE_RSSI.search(s).group('rssi'))
+        return None

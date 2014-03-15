@@ -8,7 +8,9 @@ addr = config.get('AP', 'addr')
 user = config.get('AP', 'user')
 pwd = config.get('AP', 'pass')
 
-c = Controller(addr)
-c.login(user, pwd)
-print c.summary()
-c.logout()
+ctrl = Controller(addr)
+ctrl.login(user, pwd)
+clients = ctrl.clients()
+for client in clients:
+    print client, ctrl.rssi(client)
+ctrl.logout()
