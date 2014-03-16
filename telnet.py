@@ -3,7 +3,7 @@ from telnetlib import Telnet
 class RawqTelnet(Telnet):
     def read_until(self, match):
         b = bytearray()
-        if has_attr(match, '__iter__'):
+        if hasattr(match, '__iter__'):
             while not self.eof:
                 for i in range(len(match)):
                     if b.endswith(match[i]):

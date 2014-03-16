@@ -1,6 +1,7 @@
 import telnet
 import ConfigParser
 import re
+import time
 
 __all__ = ['Controller']
 
@@ -13,14 +14,17 @@ MESSAGE_LOGOUT = 'logout'
 MESSAGE_CLIENT_SUMMARY = 'show rogue client summary'
 MESSAGE_CLIENT_DETAILED = 'show rogue client detailed %s'
 
-RE_MAC = re.compile(r'(\w\w:){5}\w\w')
-RE_RSSI = re.compile(r'(?P<rssi>-?\d+) dBm')
+RE_MAC = re.compile(r'(\w\w:){5}\w\w', re.L)
+RE_MAC_ADDR = re.compile(r'MAC Address\.+ (?P<x>.+)', re.L)
+RE_SNR = re.compile(r'SNR\.+ (?P<x>.+)', re.L)
+RE_RSSI = re.compile(r'RSSI\.+ (?P<x>.+)', re.L)
+RE_LAST_REPORT = re.compile(r'Last reported by this AP\.+ (?P<x>.+)', re.L)
 
 class Controller:
 
     def __init__(self, host):
         self.host = host
-        self.tn = telnet.RawqTelnet(host)
+        self.tn = telnet.RawqTelnet(host, timeout=1000)
 
     def _read_until(self, msg=''):
         return str(self.tn.read_until(msg))
@@ -28,7 +32,7 @@ class Controller:
     def _read_full(self):
         s = bytearray()
         while True:
-            r = self.tn.read_until(HINT_MORE, HINT_PROMPT)
+            r = self.tn.read_until(HINT_NEXT)
             s += r[1]
             if r[0] == 0:
                 self._writeline()
@@ -47,6 +51,7 @@ class Controller:
         if password:
             self._read_until(HINT_PASSWORD)
             self._writeline(password)
+        self._read_full()
 
     def logout(self):
         self._writeline(MESSAGE_LOGOUT)
@@ -66,11 +71,23 @@ class Controller:
                 break
         return lst
 
-    def rssi(self, mac):
+    def info(self, mac):
+        result = []
         if mac:
             self._writeline(MESSAGE_CLIENT_DETAILED % mac)
             s = self._read_full()
-            r = RE_RSSI.search(s)
-            if r:
-                return r.group('rssi')
-        return None
+            i = 1
+            r = s.find('AP %i' % i)
+            while r > -1:
+                try:
+                    mac_addr = RE_MAC_ADDR.search(s, r).group('x').strip()
+                    rssi = RE_RSSI.search(s, r).group('x').strip()
+                    snr = RE_SNR.search(s, r).group('x').strip()
+                    last_report = RE_LAST_REPORT.search(s, r).group('x').strip()
+                    result.append((mac_addr, rssi, snr, last_report))
+                except AttributeError as e:
+                    continue
+                finally:
+                    i += 1
+                    r = s.find('AP %i' % i)
+        return result
