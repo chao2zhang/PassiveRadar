@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS info (
 	aid INTEGER,
 	rssi INTEGER,
 	snr INTEGER,
+	tag TEXT,
+	x REAL,
+	y REAL,
 	date DATE,
 	FOREIGN KEY(cid) REFERENCES address(id),
 	FOREIGN KEY(aid) REFERENCES address(id)
