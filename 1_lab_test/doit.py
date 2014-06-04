@@ -10,17 +10,17 @@ from sklearn.linear_model import LogisticRegression
 
 
 print("Loading")
-x =  np.genfromtxt('roomtest_rssi.csv',delimiter=',')
+x = np.genfromtxt('roomtest_rssi.csv',delimiter=',')
+x = x[:,3:5] - (x[:,0].reshape((140, 1)) * np.ones((1,2)))
 y = np.genfromtxt('roomtest_p.csv',delimiter=',')
 idx = np.array(np.arange(0, 140, 5))
-idx = np.concatenate((idx, idx + 1, idx + 2)).reshape(1, 84)[0]
+idx = np.concatenate((idx, idx + 1, idx + 2, idx + 3)).reshape(1, 112)[0]
 rx = x[idx]
-ry = np.concatenate((y, y, y))
+ry = np.concatenate((y, y, y, y))
 
 idx = np.array(np.arange(0, 140, 5))
-idx = np.concatenate((idx + 3, idx + 4)).reshape(1, 56)[0]
-tx = x[idx]
-ty = np.concatenate((y, y))
+tx = x[idx + 4]
+ty = y
 
 def regress(classifier):
     print("Training")
@@ -30,6 +30,7 @@ def regress(classifier):
     d = np.power(np.sum(np.power(hy - ty, 2), axis=1), 0.5)
     print '50%', np.percentile(d, 50)
     print 'Avg', np.mean(d)
+    np.savetxt('result.csv',d,delimiter=',')
 
 def split_regress(c1, c2):
     hy = np.zeros((ty.shape[0],2))
@@ -47,7 +48,7 @@ def split_regress(c1, c2):
 
 regress(RandomForestRegressor(n_estimators=250, random_state=1))
 
-split_regress(GradientBoostingRegressor(n_estimators=250), GradientBoostingRegressor(n_estimators=250))
+#split_regress(GradientBoostingRegressor(n_estimators=250), GradientBoostingRegressor(n_estimators=250))
 # classifier = GradientBoostingClassifier(n_estimators=250)
 #classifier = LogisticRegression()
-split_regress(svm.SVR(), svm.SVR())
+#split_regress(svm.SVR(), svm.SVR())

@@ -38,14 +38,13 @@ num_test = num_samples - num_train;
 idx = ones(num_train, 1) * linspace(1, num_labels * num_samples - num_samples + 1, num_labels) ...
        + linspace(0, num_train - 1, num_train)' * ones(1, num_labels);
 idx = reshape(idx, 1, []);
-X = rssi(idx, :);
+X = rssi(idx, :)
 y = reshape(ones(num_train, 1) * linspace(1, num_labels, num_labels), [], 1);
 idx_test = ones(num_test, 1) * linspace(1, num_labels * num_samples - num_samples + 1, num_labels) ...
        + linspace(0, num_test - 1, num_test)' * ones(1, num_labels) + num_train;
 idx_test = reshape(idx_test, 1, []);
-X_test = rssi(idx_test, :);
+X_test = rssi(idx_test, :)
 y_test = reshape(ones(num_test, 1) * linspace(1, num_labels, num_labels), [], 1);
-pause;
 
 %% ================ Part 6: Initializing Pameters ================
 %  In this part of the exercise, you will be starting to implment a two
@@ -90,7 +89,6 @@ Theta1 = reshape(nn_params(1:hidden_layer_size * (input_layer_size + 1)), hidden
 Theta2 = reshape(nn_params((1 + (hidden_layer_size * (input_layer_size + 1))):end), num_labels, (hidden_layer_size + 1));
 
 fprintf('Program paused. Press enter to continue.\n');
-pause;
 
 %% ================= Part 10: Implement Predict =================
 %  After training the neural network, we would like to use it to predict
@@ -102,8 +100,11 @@ pause;
 fprintf('\nTraining Set Accuracy: %f\n', mean(double(pred == y)) * 100);
 [pred, h] = predict(Theta1, Theta2, X_test);
 fprintf('\nTesting Set Accuracy: %f\n', mean(double(pred == y_test)) * 100);
-errors = sqrt(sum((pos(pred, :) - pos(y_test, :)) .^ 2, 2));
+e = sqrt(sum((pos(pred, :) - pos(y_test, :)) .^ 2, 2));
+e1 = sqrt(sum((h * pos - pos) .^ 2, 2));
 h2 = h .* h;
 h2 = h2 ./ (sum(h2, 2) * ones(1, size(h2, 2)));
+e2 = sqrt(sum((h2 * pos - pos) .^ 2, 2));
 h3 = h .* h .* h;
 h3 = h3 ./ (sum(h3, 2) * ones(1, size(h3, 2)));
+e3 = sqrt(sum((h3 * pos - pos) .^ 2, 2));
